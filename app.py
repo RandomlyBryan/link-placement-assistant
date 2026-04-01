@@ -10,7 +10,7 @@ if "GEMINI_API_KEY" in st.secrets:
 else:
     st.error("API Key missing! Please set GEMINI_API_KEY in the Streamlit Secrets.")
 
-st.title("🔗 Scalerrs Link Inserter")
+st.title("🔗 Link Placement Assistant")
 st.info("Input the details below. The AI will rewrite the section to fit the link naturally.")
 
 col1, col2 = st.columns([1, 2])
