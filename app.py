@@ -3,30 +3,29 @@ import google.generativeai as genai
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Link placement assistant",
+    page_title="Link Placement Assistant",
     page_icon="🔗",
     layout="wide"
 )
 
 # 2. API Key Setup
-# We use st.secrets so the key stays hidden from the public
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
-    st.error("Missing API Key! Go to Streamlit Settings > Secrets and add: GEMINI_API_KEY = 'your_key'")
+    st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Secrets.")
 
 # 3. UI Header
 st.title("🔗 SEO Link Placement Assistant")
-st.markdown("Designed for the team to insert links naturally.")
+st.markdown("Enter details to naturally insert a backlink into your content.")
 
 # 4. Input Section
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Link Details")
-    site_name = st.text_input("Target Site Name", placeholder="e.g. https://example.com")
+    site_name = st.text_input("Target Site Name", placeholder="e.g. https://example.com/")
     target_url = st.text_input("Target URL", placeholder="https://example.com/page")
-    anchor_text = st.text_input("Anchor Text", placeholder="e.g. Anchor text here")
+    anchor_text = st.text_input("Anchor Text", placeholder="e.g. Abchor Text Here")
     
 with col2:
     st.subheader("Article Content")
@@ -37,44 +36,44 @@ if st.button("Generate Optimized Article", type="primary"):
     if not article_content or not anchor_text or not target_url:
         st.warning("Please fill in the Article, Anchor Text, and URL.")
     else:
-        with st.spinner("AI is analyzing and inserting the link..."):
+        with st.spinner("Finding the best placement..."):
             try:
+                # Updated prompt to match the specific format from our chat
                 prompt = f"""
-                You are a senior SEO Editor. Your task is to insert a backlink naturally into the provided article.
+                You are a senior SEO Editor.
                 
-                Link Info:
-                - Site Name: {site_name}
+                Context:
+                - Target Site: {site_name}
                 - Target URL: {target_url}
                 - Anchor Text: {anchor_text}
                 
-                Article Content:
+                Article:
                 {article_content}
                 
-                Guidelines:
-                1. Insert the link <a href="{target_url}">{anchor_text}</a> into the most relevant paragraph.
-                2. Ensure the sentence flow remains natural and professional.
-                3. Return the FULL updated article including the HTML link.
+                Task:
+                1. Identify the most relevant paragraph to insert the anchor text.
+                2. Rewrite that paragraph to naturally include: <a href="{target_url}">{anchor_text}</a>.
+                3. Ensure the flow is seamless and professional.
+                
+                Response Format:
+                ### Revised Section:
+                [Show ONLY the paragraph where the link was inserted here]
+                
+                ### Full Optimized Article:
+                [Provide the full article here with the link included]
                 """
                 
-                # Updated to the current 2026 stable model
                 model = genai.GenerativeModel('gemini-3-flash-preview')
                 response = model.generate_content(prompt)
-                final_text = response.text
+                final_output = response.text
                 
-                # Display Result
                 st.divider()
-                st.subheader("Final Optimized Article")
+                # Display the result using markdown so the headings and code blocks look right
+                st.markdown(final_output)
                 
-                # st.code provides a 'copy' button automatically
-                st.code(final_text, language="html")
-                
-                # Download Button for the team
-                st.download_button(
-                    label="Download Article as .txt",
-                    data=final_text,
-                    file_name=f"optimized_{site_name.lower().replace(' ', '_')}.txt",
-                    mime="text/plain"
-                )
+                # Add a copy-friendly raw version for the team
+                with st.expander("Show Raw HTML for Copying"):
+                    st.code(final_output, language="html")
                 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
