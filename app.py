@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+import re
 
 # 1. Page Configuration
 st.set_page_config(
@@ -15,17 +16,17 @@ else:
     st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Secrets.")
 
 # 3. UI Header
-st.title("🔗 SEO Link Inserter (Options Mode)")
-st.markdown("Generate 3 different placement options for your backlink.")
+st.title("🔗 SEO Link Inserter (Copy-Ready Mode)")
+st.markdown("Select a placement option below and use the copy icon in the top-right of each box.")
 
 # 4. Input Section
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Link Details")
-    site_name = st.text_input("Domain Name", placeholder="e.g. https://example.com/")
-    target_url = st.text_input("Target URL", placeholder="https://example.com/page")
-    anchor_text = st.text_input("Anchor Text", placeholder="e.g. digital marketing agency")
+    site_name = st.text_input("Target Site Name")
+    target_url = st.text_input("Target URL")
+    anchor_text = st.text_input("Anchor Text")
     
 with col2:
     st.subheader("Article Content")
@@ -34,12 +35,12 @@ with col2:
 # 5. Execution Logic
 if st.button("Generate 3 Placement Options", type="primary"):
     if not article_content or not anchor_text or not target_url:
-        st.warning("Please fill in the Article, Anchor Text, and URL.")
+        st.warning("Please fill in all fields.")
     else:
-        with st.spinner("Finding the 3 best spots..."):
+        with st.spinner("Generating options..."):
             try:
                 prompt = f"""
-                You are a senior SEO Editor. Your task is to provide 3 different options for inserting a backlink.
+                You are a senior SEO Editor. Provide 3 different options for inserting a backlink.
                 
                 Link Info:
                 - Target URL: {target_url}
@@ -48,31 +49,43 @@ if st.button("Generate 3 Placement Options", type="primary"):
                 Article:
                 {article_content}
                 
-                Task:
-                Find 3 different paragraphs where the anchor text could fit naturally.
+                For each of the 3 options, provide:
+                1. The Original Paragraph.
+                2. The Revised Paragraph with the HTML link <a href="{target_url}">{anchor_text}</a>.
                 
-                Format the response EXACTLY like this for each option:
-                
-                ### Option [Number]
-                **Original Section:**
-                [The original paragraph]
-                
-                **Revised Section:**
-                [The rewritten paragraph with <a href="{target_url}">{anchor_text}</a> inserted naturally]
-                
-                ---
+                Format your response exactly like this so I can parse it:
+                OPTION_START
+                ORIGINAL: [Paragraph]
+                REVISED: [Paragraph with link]
+                OPTION_END
                 """
                 
                 model = genai.GenerativeModel('gemini-3-flash-preview')
                 response = model.generate_content(prompt)
-                
+                raw_text = response.text
+
+                # Parsing the 3 options
+                options = re.findall(r"OPTION_START\nORIGINAL: (.*?)\nREVISED: (.*?)\nOPTION_END", raw_text, re.DOTALL)
+
                 st.divider()
-                # Display the 3 options
-                st.markdown(response.text)
-                
-                # Copy friendly block for the team
-                with st.expander("Show Raw HTML for Copying"):
-                    st.code(response.text, language="html")
-                
+
+                for i, (original, revised) in enumerate(options, 1):
+                    st.subheader(f"Option {i}")
+                    
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.caption("Original Section (For Reference)")
+                        st.code(original.strip(), language=None) # Clickable copy button here
+                    
+                    with c2:
+                        st.caption("Revised Section (Copy for CMS)")
+                        st.code(revised.strip(), language="html") # Clickable copy button here
+                        
+                        # Visual Preview (Clickable link for testing)
+                        st.markdown("**Live Preview:**")
+                        st.markdown(revised.strip(), unsafe_allow_html=True)
+                    
+                    st.divider()
+
             except Exception as e:
-                st.error(f"An error occurred: {e}")
+                st.error(f"An error occurred: {e}. If this persists, try clicking generate again.")
