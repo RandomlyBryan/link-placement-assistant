@@ -3,99 +3,78 @@ import google.generativeai as genai
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Link Placement Assistant",
+    page_title="Link placement assistant",
     page_icon="🔗",
     layout="wide"
 )
 
-# 2. API Key Configuration (Using Streamlit Secrets)
+# 2. API Key Setup
+# We use st.secrets so the key stays hidden from the public
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
-    st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Cloud Secrets.")
-    st.stop()
+    st.error("Missing API Key! Go to Streamlit Settings > Secrets and add: GEMINI_API_KEY = 'your_key'")
 
 # 3. UI Header
-st.title("🔗 Link Placement Assistant")
-st.markdown("""
-Use this tool to naturally insert backlinks into your articles. 
-The AI will maintain the original tone while ensuring the anchor text flows perfectly.
-""")
+st.title("🔗 SEO Link Placement Assistant")
+st.markdown("Designed for the team to insert links naturally.")
 
 # 4. Input Section
-with st.container():
-    col1, col2 = st.columns([1, 2], gap="large")
+col1, col2 = st.columns([1, 2])
 
-    with col1:
-        st.subheader("Link Details")
-        # FIXED: Use single quotes inside double quotes for the placeholder
-        site_name = st.text_input("Target Domain", placeholder="e.g., 'https://sample.com/'")
-        anchor_text = st.text_input("Anchor Text", placeholder="e.g., anchor text here")
-        target_url = st.text_input("Target URL", placeholder="https://sample.com/content-slug-here")
-        
-        st.divider()
-        generate_btn = st.button("🚀 Generate Optimized Article", use_container_width=True)
+with col1:
+    st.subheader("Link Details")
+    site_name = st.text_input("Target Site Name", placeholder="e.g. https://example.com")
+    target_url = st.text_input("Target URL", placeholder="https://example.com/page")
+    anchor_text = st.text_input("Anchor Text", placeholder="e.g. Anchor text here")
+    
+with col2:
+    st.subheader("Article Content")
+    article_content = st.text_area("Paste your article here:", height=300)
 
-    with col2:
-        st.subheader("Article Content")
-        article_content = st.text_area(
-            "Paste the original article here:", 
-            height=400,
-            placeholder="Once upon a time in the world of SEO..."
-        )
-
-# 5. Processing Logic
-if generate_btn:
+# 5. Execution Logic
+if st.button("Generate Optimized Article", type="primary"):
     if not article_content or not anchor_text or not target_url:
-        st.warning("Please fill in the Anchor Text, URL, and Article Content.")
+        st.warning("Please fill in the Article, Anchor Text, and URL.")
     else:
-        with st.spinner("Analyzing text and inserting link..."):
+        with st.spinner("AI is analyzing and inserting the link..."):
             try:
-                # Updated to use a valid stable model name
-               model = genai.GenerativeModel('gemini-3-flash-preview')
-                
                 prompt = f"""
-                You are a Senior SEO Content Editor. Your goal is to insert a backlink into an article so naturally that a reader wouldn't realize it was added later.
+                You are a senior SEO Editor. Your task is to insert a backlink naturally into the provided article.
                 
-                CONTEXT:
-                - Target Site: {site_name}
-                - Anchor Text: {anchor_text}
+                Link Info:
+                - Site Name: {site_name}
                 - Target URL: {target_url}
+                - Anchor Text: {anchor_text}
                 
-                ORIGINAL ARTICLE:
+                Article Content:
                 {article_content}
                 
-                INSTRUCTIONS:
+                Guidelines:
                 1. Insert the link <a href="{target_url}">{anchor_text}</a> into the most relevant paragraph.
-                2. If the exact anchor text doesn't exist, slightly rewrite a sentence to include it naturally.
-                3. Do not change the overall meaning or tone of the article.
-                4. Fix any obvious SEO or grammatical errors you find.
-                5. RETURN THE FULL UPDATED ARTICLE IN HTML FORMAT.
+                2. Ensure the sentence flow remains natural and professional.
+                3. Return the FULL updated article including the HTML link.
                 """
                 
+                # Updated to the current 2026 stable model
+                model = genai.GenerativeModel('gemini-3-flash-preview')
                 response = model.generate_content(prompt)
+                final_text = response.text
                 
-                # 6. Results Display
-                st.success("Link successfully inserted!")
+                # Display Result
+                st.divider()
+                st.subheader("Final Optimized Article")
                 
-                tabs = st.tabs(["Preview", "HTML Code"])
+                # st.code provides a 'copy' button automatically
+                st.code(final_text, language="html")
                 
-                with tabs[0]:
-                    # Displaying the raw HTML/Markdown response
-                    st.markdown(response.text, unsafe_allow_html=True)
-                
-                with tabs[1]:
-                    # Display the code for easy copying
-                    st.code(response.text, language="html")
-                
-                # Download Button
+                # Download Button for the team
                 st.download_button(
-                    label="Download as Text File",
-                    data=response.text,
-                    file_name=f"optimized_article.txt",
+                    label="Download Article as .txt",
+                    data=final_text,
+                    file_name=f"optimized_{site_name.lower().replace(' ', '_')}.txt",
                     mime="text/plain"
                 )
-
+                
             except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-                st.info("Tip: If you see a 'NotFound' error, verify the model name in the code.")
+                st.error(f"An error occurred: {e}")
