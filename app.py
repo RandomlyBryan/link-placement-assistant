@@ -16,6 +16,13 @@ st.markdown("""
         white-space: pre-wrap !important;
         word-break: break-word !important;
     }
+    .preview-box {
+        border: 1px solid #444; 
+        padding: 15px; 
+        border-radius: 8px; 
+        background-color: #1e1e1e;
+        color: white;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -37,15 +44,13 @@ with st.sidebar:
     st.title("RandomlyAI")
     st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app for a new article.")
     st.divider()
-    st.info("Welcome to Link Placement Assistant - Insert anchor text naturally without disrupting the content flow. ---
-
-How can I help you optimize your articles today?")
+    st.info("Insert anchor text naturally without disrupting the content flow.")
 
 # 6. UI Header
 st.title("🔗 Link Placement Assistant")
 st.markdown("Advanced AI agent for natural link placement.")
 
-# 7. Input Section (Linked to Session State)
+# 7. Input Section
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -65,8 +70,14 @@ if st.button("Generate Placement Options", type="primary"):
     else:
         with st.spinner("Agent is analyzing semantic flow..."):
             try:
+                # System instructions help the model stick to the format
+                model = genai.GenerativeModel(
+                    model_name='gemini-1.5-flash', # Updated to a valid model name
+                    system_instruction="You are a senior SEO Editor. You must follow the OPTION_START, ORIGINAL, REVISED, OPTION_END format exactly."
+                )
+
                 prompt = f"""
-                You are a senior SEO Editor. Provide 3 different options for inserting a backlink.
+                Provide 3 different options for inserting a backlink.
                 
                 Link Info:
                 - URL: {target_url}
@@ -88,28 +99,31 @@ if st.button("Generate Placement Options", type="primary"):
                 OPTION_END
                 """
                 
-                model = genai.GenerativeModel('gemini-3-flash-preview')
                 response = model.generate_content(prompt)
                 raw_text = response.text
 
-                options = re.findall(r"OPTION_START\nORIGINAL: (.*?)\nREVISED: (.*?)\nOPTION_END", raw_text, re.DOTALL)
+                # Updated Regex: Handles varying whitespace and newlines more robustly
+                pattern = r"OPTION_START\s*ORIGINAL:\s*(.*?)\s*REVISED:\s*(.*?)\s*OPTION_END"
+                options = re.findall(pattern, raw_text, re.DOTALL)
 
                 st.divider()
 
                 if not options:
-                    st.error("Formatting error. Try clicking generate again.")
+                    st.error("The AI returned a format I couldn't parse. Please try again.")
+                    with st.expander("Show raw AI output"):
+                        st.write(raw_text)
                 else:
                     for i, (original, revised) in enumerate(options, 1):
                         st.subheader(f"Option {i}")
                         
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.caption("Original Paragraph (Copy-Ready)")
+                            st.caption("Original Paragraph (Reference)")
                             st.code(original.strip(), language=None)
                         
                         with c2:
                             st.caption("Revised Paragraph (Live Preview)")
-                            st.markdown(f'<div style="border:1px solid #444; padding:15px; border-radius:8px; background-color:#1e1e1e;">{revised.strip()}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="preview-box">{revised.strip()}</div>', unsafe_allow_html=True)
                             
                             st.caption("Revised HTML (Copy-Ready)")
                             st.code(revised.strip(), language="html")
