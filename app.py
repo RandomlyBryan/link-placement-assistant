@@ -9,41 +9,64 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. API Key Setup
+# 2. CUSTOM CSS: Forces text wrapping in code blocks
+st.markdown("""
+    <style>
+    code {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 3. API Key Setup
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
     st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Secrets.")
 
-# 3. UI Header
-st.title("🔗 Precision SEO Link Placement Assistant")
-st.markdown("Advanced AI agent trained to prioritize natural content flow and link relevance.")
+# 4. Refresh Logic (Session State)
+def clear_text():
+    st.session_state["site_name"] = ""
+    st.session_state["target_url"] = ""
+    st.session_state["anchor_text"] = ""
+    st.session_state["article_content"] = ""
 
-# 4. Input Section
+# 5. Sidebar & Clear Button
+with st.sidebar:
+    st.title("Controls")
+    st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app for a new article.")
+    st.divider()
+    st.info("Tip: Use the copy icon in the top-right of the result boxes.")
+
+# 6. UI Header
+st.title("🔗 Link Placement Assistant")
+st.markdown("Advanced AI agent for natural link placement.")
+
+# 7. Input Section (Linked to Session State)
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Link Details")
-    site_name = st.text_input("Target Site Name")
-    target_url = st.text_input("Target URL")
-    anchor_text = st.text_input("Anchor Text")
+    site_name = st.text_input("Target Site Name", key="site_name")
+    target_url = st.text_input("Target URL", key="target_url")
+    anchor_text = st.text_input("Anchor Text", key="anchor_text")
     
 with col2:
     st.subheader("Article Content")
-    article_content = st.text_area("Paste your article here:", height=300)
+    article_content = st.text_area("Paste your article here:", height=300, key="article_content")
 
-# 5. Execution Logic
-if st.button("Generate 3 Natural Options", type="primary"):
+# 8. Execution Logic
+if st.button("Generate Placement Options", type="primary"):
     if not article_content or not anchor_text or not target_url:
         st.warning("Please fill in all fields.")
     else:
         with st.spinner("Agent is analyzing semantic flow..."):
             try:
-                # ENHANCED PROMPT FOR NATURAL FLOW
                 prompt = f"""
-                You are a Senior Content Strategist and SEO Editor. Your goal is to insert a backlink so naturally that a reader wouldn't realize it was added later.
+                You are a senior SEO Editor. Provide 3 different options for inserting a backlink.
                 
-                Link Metadata:
+                Link Info:
                 - URL: {target_url}
                 - Anchor Text: {anchor_text}
                 - Target Context: {site_name}
@@ -52,15 +75,14 @@ if st.button("Generate 3 Natural Options", type="primary"):
                 {article_content}
                 
                 STRICT EDITORIAL RULES:
-                1. ANALYZE: Scan the article for themes directly related to "{anchor_text}" or "{site_name}".
-                2. PLACEMENT: Do not just drop the link. Rewrite the surrounding sentence to bridge the original thought with the new link seamlessly.
-                3. FLOW: Ensure the transition into the anchor text is grammatically perfect. Avoid "Click here" or "Check out this link" styles.
-                4. VARIETY: Provide 3 distinct placement options in different parts of the article (Introduction, Body, Conclusion).
+                1. ANALYZE: Scan for themes related to "{anchor_text}".
+                2. PLACEMENT: Rewrite the surrounding sentence to bridge the original thought with the new link.
+                3. FLOW: Ensure natural, professional tone. Avoid "Click here" styles.
                 
-                OUTPUT FORMAT (STRICT):
+                OUTPUT FORMAT:
                 OPTION_START
-                ORIGINAL: [Paragraph text before any changes]
-                REVISED: [The fully rewritten paragraph with <a href="{target_url}">{anchor_text}</a> integrated naturally]
+                ORIGINAL: [Paragraph text]
+                REVISED: [Rewritten paragraph with <a href="{target_url}">{anchor_text}</a>]
                 OPTION_END
                 """
                 
@@ -73,23 +95,21 @@ if st.button("Generate 3 Natural Options", type="primary"):
                 st.divider()
 
                 if not options:
-                    st.error("The AI had trouble formatting the response. Please try clicking the button again.")
-                    st.write("Raw Output for debugging:", raw_text)
+                    st.error("Formatting error. Try clicking generate again.")
                 else:
                     for i, (original, revised) in enumerate(options, 1):
                         st.subheader(f"Option {i}")
                         
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.caption("Original Paragraph (Wrapped)")
-                            st.text_area(f"Orig_{i}", value=original.strip(), height=160, disabled=True, label_visibility="collapsed")
+                            st.caption("Original Paragraph (Copy-Ready)")
+                            st.code(original.strip(), language=None)
                         
                         with c2:
                             st.caption("Revised Paragraph (Live Preview)")
-                            # Live rendered version for the team to see the link
                             st.markdown(f'<div style="border:1px solid #444; padding:15px; border-radius:8px; background-color:#1e1e1e;">{revised.strip()}</div>', unsafe_allow_html=True)
                             
-                            # Code block with Copy button
+                            st.caption("Revised HTML (Copy-Ready)")
                             st.code(revised.strip(), language="html")
                         
                         st.divider()
