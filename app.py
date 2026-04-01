@@ -44,7 +44,7 @@ with st.sidebar:
     st.title("RandomlyAI")
     st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app for a new article.")
     st.divider()
-    st.info("Insert anchor text naturally without disrupting the content flow.")
+    st.info("Welcome to Link Placement Assistant Insert anchor text naturally without disrupting the content flow.")
 
 # 6. UI Header
 st.title("🔗 Link Placement Assistant")
