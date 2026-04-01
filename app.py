@@ -28,9 +28,9 @@ with st.container():
 
     with col1:
         st.subheader("Link Details")
-        site_name = st.text_input("Target Site Name", placeholder="e.g., Scalerrs")
-        anchor_text = st.text_input("Anchor Text", placeholder="e.g., digital marketing agency")
-        target_url = st.text_input("Target URL", placeholder="https://scalerrs.com/services")
+        site_name = st.text_input("Target Domain", placeholder="e.g., "https://sample.com/")
+        anchor_text = st.text_input("Anchor Text", placeholder="e.g., anchor text here")
+        target_url = st.text_input("Target URL", placeholder="https://sample.com/content-slug-here")
         
         st.divider()
         generate_btn = st.button("🚀 Generate Optimized Article", use_container_width=True)
