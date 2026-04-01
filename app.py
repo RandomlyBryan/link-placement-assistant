@@ -42,13 +42,12 @@ def clear_text():
 # 5. Sidebar & Clear Button
 with st.sidebar:
     st.title("RandomlyAI")
-    st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app for a new article.")
+    st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app.")
     st.divider()
-    st.info("Welcome to Link Placement Assistant Insert anchor text naturally without disrupting the content flow.")
+    st.info("Optimize link placements without disrupting flow.")
 
 # 6. UI Header
 st.title("🔗 Link Placement Assistant")
-st.markdown("Advanced AI agent for natural link placement.")
 
 # 7. Input Section
 col1, col2 = st.columns([1, 2])
@@ -68,12 +67,12 @@ if st.button("Generate Placement Options", type="primary"):
     if not article_content or not anchor_text or not target_url:
         st.warning("Please fill in all fields.")
     else:
-        with st.spinner("Agent is analyzing semantic flow..."):
+        with st.spinner("Analyzing semantic flow..."):
             try:
-                # System instructions help the model stick to the format
+                # Keep the requested model name but use System Instructions for better reliability
                 model = genai.GenerativeModel(
-                    model_name='gemini-1.5-flash', # Updated to a valid model name
-                    system_instruction="You are a senior SEO Editor. You must follow the OPTION_START, ORIGINAL, REVISED, OPTION_END format exactly."
+                    model_name='gemini-3-flash-preview',
+                    system_instruction="You are a senior SEO Editor. Follow the OPTION_START, ORIGINAL, REVISED, OPTION_END format exactly."
                 )
 
                 prompt = f"""
@@ -90,7 +89,7 @@ if st.button("Generate Placement Options", type="primary"):
                 STRICT EDITORIAL RULES:
                 1. ANALYZE: Scan for themes related to "{anchor_text}".
                 2. PLACEMENT: Rewrite the surrounding sentence to bridge the original thought with the new link.
-                3. FLOW: Ensure natural, professional tone. Avoid "Click here" styles.
+                3. FLOW: Natural, professional tone. No "Click here" styles.
                 
                 OUTPUT FORMAT:
                 OPTION_START
@@ -102,32 +101,28 @@ if st.button("Generate Placement Options", type="primary"):
                 response = model.generate_content(prompt)
                 raw_text = response.text
 
-                # Updated Regex: Handles varying whitespace and newlines more robustly
+                # Robust regex: handles extra spaces or newlines gracefully
                 pattern = r"OPTION_START\s*ORIGINAL:\s*(.*?)\s*REVISED:\s*(.*?)\s*OPTION_END"
                 options = re.findall(pattern, raw_text, re.DOTALL)
 
                 st.divider()
 
                 if not options:
-                    st.error("The AI returned a format I couldn't parse. Please try again.")
-                    with st.expander("Show raw AI output"):
-                        st.write(raw_text)
+                    st.error("Formatting error. The AI didn't follow the tag structure.")
+                    with st.expander("View Raw Output"):
+                        st.text(raw_text)
                 else:
                     for i, (original, revised) in enumerate(options, 1):
                         st.subheader(f"Option {i}")
-                        
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.caption("Original Paragraph (Reference)")
+                            st.caption("Original Paragraph")
                             st.code(original.strip(), language=None)
-                        
                         with c2:
-                            st.caption("Revised Paragraph (Live Preview)")
+                            st.caption("Live Preview")
                             st.markdown(f'<div class="preview-box">{revised.strip()}</div>', unsafe_allow_html=True)
-                            
-                            st.caption("Revised HTML (Copy-Ready)")
+                            st.caption("HTML Output")
                             st.code(revised.strip(), language="html")
-                        
                         st.divider()
 
             except Exception as e:
