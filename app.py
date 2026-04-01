@@ -34,10 +34,12 @@ def clear_text():
 
 # 5. Sidebar & Clear Button
 with st.sidebar:
-    st.title("Controls")
+    st.title("RandomlyAI")
     st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app for a new article.")
     st.divider()
-    st.info("Tip: Use the copy icon in the top-right of the result boxes.")
+    st.info("Welcome to Link Placement Assistant - Insert anchor text naturally without disrupting the content flow. ---
+
+How can I help you optimize your articles today?")
 
 # 6. UI Header
 st.title("🔗 Link Placement Assistant")
