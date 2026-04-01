@@ -3,7 +3,7 @@ import google.generativeai as genai
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Scalerrs SEO Link Inserter",
+    page_title="Link Placement Assistant",
     page_icon="🔗",
     layout="wide"
 )
@@ -28,7 +28,8 @@ with st.container():
 
     with col1:
         st.subheader("Link Details")
-        site_name = st.text_input("Target Domain", placeholder="e.g., "https://sample.com/")
+        # FIXED: Use single quotes inside double quotes for the placeholder
+        site_name = st.text_input("Target Domain", placeholder="e.g., 'https://sample.com/'")
         anchor_text = st.text_input("Anchor Text", placeholder="e.g., anchor text here")
         target_url = st.text_input("Target URL", placeholder="https://sample.com/content-slug-here")
         
@@ -50,7 +51,7 @@ if generate_btn:
     else:
         with st.spinner("Analyzing text and inserting link..."):
             try:
-                # Using Gemini 3 Flash for the best balance of speed and SEO logic
+                # Updated to use a valid stable model name
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
                 prompt = f"""
@@ -80,19 +81,21 @@ if generate_btn:
                 tabs = st.tabs(["Preview", "HTML Code"])
                 
                 with tabs[0]:
-                    st.markdown(response.text, unsafe_content=True)
+                    # Displaying the raw HTML/Markdown response
+                    st.markdown(response.text, unsafe_allow_html=True)
                 
                 with tabs[1]:
+                    # Display the code for easy copying
                     st.code(response.text, language="html")
                 
                 # Download Button
                 st.download_button(
                     label="Download as Text File",
                     data=response.text,
-                    file_name=f"optimized_{site_name.lower().replace(' ', '_')}.txt",
+                    file_name=f"optimized_article.txt",
                     mime="text/plain"
                 )
 
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
-                st.info("Tip: Double-check your API key and internet connection.")
+                st.info("Tip: If you see a 'NotFound' error, verify the model name in the code.")
