@@ -52,7 +52,7 @@ if generate_btn:
         with st.spinner("Analyzing text and inserting link..."):
             try:
                 # Updated to use a valid stable model name
-                model = genai.GenerativeModel('gemini-1.5-flash')
+               model = genai.GenerativeModel('gemini-3-flash-preview')
                 
                 prompt = f"""
                 You are a Senior SEO Content Editor. Your goal is to insert a backlink into an article so naturally that a reader wouldn't realize it was added later.
