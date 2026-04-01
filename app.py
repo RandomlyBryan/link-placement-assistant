@@ -16,8 +16,8 @@ else:
     st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Secrets.")
 
 # 3. UI Header
-st.title("🔗 SEO Link Inserter (Copy-Ready Mode)")
-st.markdown("Select a placement option below and use the copy icon in the top-right of each box.")
+st.title("🔗 Precision SEO Link Placement Assistant")
+st.markdown("Advanced AI agent trained to prioritize natural content flow and link relevance.")
 
 # 4. Input Section
 col1, col2 = st.columns([1, 2])
@@ -33,30 +33,34 @@ with col2:
     article_content = st.text_area("Paste your article here:", height=300)
 
 # 5. Execution Logic
-if st.button("Generate 3 Placement Options", type="primary"):
+if st.button("Generate 3 Natural Options", type="primary"):
     if not article_content or not anchor_text or not target_url:
         st.warning("Please fill in all fields.")
     else:
-        with st.spinner("Generating options..."):
+        with st.spinner("Agent is analyzing semantic flow..."):
             try:
+                # ENHANCED PROMPT FOR NATURAL FLOW
                 prompt = f"""
-                You are a senior SEO Editor. Provide 3 different options for inserting a backlink.
+                You are a Senior Content Strategist and SEO Editor. Your goal is to insert a backlink so naturally that a reader wouldn't realize it was added later.
                 
-                Link Info:
-                - Target URL: {target_url}
+                Link Metadata:
+                - URL: {target_url}
                 - Anchor Text: {anchor_text}
+                - Target Context: {site_name}
                 
-                Article:
+                Article Content:
                 {article_content}
                 
-                For each of the 3 options, provide:
-                1. The Original Paragraph.
-                2. The Revised Paragraph with the HTML link <a href="{target_url}">{anchor_text}</a>.
+                STRICT EDITORIAL RULES:
+                1. ANALYZE: Scan the article for themes directly related to "{anchor_text}" or "{site_name}".
+                2. PLACEMENT: Do not just drop the link. Rewrite the surrounding sentence to bridge the original thought with the new link seamlessly.
+                3. FLOW: Ensure the transition into the anchor text is grammatically perfect. Avoid "Click here" or "Check out this link" styles.
+                4. VARIETY: Provide 3 distinct placement options in different parts of the article (Introduction, Body, Conclusion).
                 
-                Format your response exactly like this so I can parse it:
+                OUTPUT FORMAT (STRICT):
                 OPTION_START
-                ORIGINAL: [Paragraph]
-                REVISED: [Paragraph with link]
+                ORIGINAL: [Paragraph text before any changes]
+                REVISED: [The fully rewritten paragraph with <a href="{target_url}">{anchor_text}</a> integrated naturally]
                 OPTION_END
                 """
                 
@@ -64,28 +68,31 @@ if st.button("Generate 3 Placement Options", type="primary"):
                 response = model.generate_content(prompt)
                 raw_text = response.text
 
-                # Parsing the 3 options
                 options = re.findall(r"OPTION_START\nORIGINAL: (.*?)\nREVISED: (.*?)\nOPTION_END", raw_text, re.DOTALL)
 
                 st.divider()
 
-                for i, (original, revised) in enumerate(options, 1):
-                    st.subheader(f"Option {i}")
-                    
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.caption("Original Section (For Reference)")
-                        st.code(original.strip(), language=None) # Clickable copy button here
-                    
-                    with c2:
-                        st.caption("Revised Section (Copy for CMS)")
-                        st.code(revised.strip(), language="html") # Clickable copy button here
+                if not options:
+                    st.error("The AI had trouble formatting the response. Please try clicking the button again.")
+                    st.write("Raw Output for debugging:", raw_text)
+                else:
+                    for i, (original, revised) in enumerate(options, 1):
+                        st.subheader(f"Option {i}")
                         
-                        # Visual Preview (Clickable link for testing)
-                        st.markdown("**Live Preview:**")
-                        st.markdown(revised.strip(), unsafe_allow_html=True)
-                    
-                    st.divider()
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.caption("Original Paragraph (Wrapped)")
+                            st.text_area(f"Orig_{i}", value=original.strip(), height=160, disabled=True, label_visibility="collapsed")
+                        
+                        with c2:
+                            st.caption("Revised Paragraph (Live Preview)")
+                            # Live rendered version for the team to see the link
+                            st.markdown(f'<div style="border:1px solid #444; padding:15px; border-radius:8px; background-color:#1e1e1e;">{revised.strip()}</div>', unsafe_allow_html=True)
+                            
+                            # Code block with Copy button
+                            st.code(revised.strip(), language="html")
+                        
+                        st.divider()
 
             except Exception as e:
-                st.error(f"An error occurred: {e}. If this persists, try clicking generate again.")
+                st.error(f"Error: {e}")
