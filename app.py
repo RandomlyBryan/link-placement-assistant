@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import anthropic  # Changed from google.generativeai
 import re
 
 # 1. Page Configuration
@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. CUSTOM CSS: Forces text wrapping in code blocks
+# 2. CUSTOM CSS
 st.markdown("""
     <style>
     code {
@@ -26,13 +26,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. API Key Setup
-if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# 3. API Key Setup (Anthropic)
+if "CLAUDE_API_KEY" in st.secrets:
+    client = anthropic.Anthropic(api_key=st.secrets["CLAUDE_API_KEY"])
 else:
-    st.error("Missing API Key! Please add GEMINI_API_KEY to your Streamlit Secrets.")
+    st.error("Missing API Key! Please add CLAUDE_API_KEY to your Streamlit Secrets.")
 
-# 4. Refresh Logic (Session State)
+# 4. Refresh Logic
 def clear_text():
     st.session_state["site_name"] = ""
     st.session_state["target_url"] = ""
@@ -44,10 +44,10 @@ with st.sidebar:
     st.title("RandomlyAI")
     st.button("Clear All Fields", on_click=clear_text, help="Click to reset the app.")
     st.divider()
-    st.info("Optimize link placements without disrupting flow.")
+    st.info("Optimize link placements with Claude.")
 
 # 6. UI Header
-st.title("🔗 Link Placement Assistant")
+st.title("🔗 Link Placement Assistant (Claude Edition)")
 
 # 7. Input Section
 col1, col2 = st.columns([1, 2])
@@ -67,15 +67,12 @@ if st.button("Generate Placement Options", type="primary"):
     if not article_content or not anchor_text or not target_url:
         st.warning("Please fill in all fields.")
     else:
-        with st.spinner("Analyzing semantic flow..."):
+        with st.spinner("Claude is analyzing semantic flow..."):
             try:
-                # Keep the requested model name but use System Instructions for better reliability
-                model = genai.GenerativeModel(
-                    model_name='gemini-3-flash-preview',
-                    system_instruction="You are a senior SEO Editor. Follow the OPTION_START, ORIGINAL, REVISED, OPTION_END format exactly."
-                )
-
-                prompt = f"""
+                # System instructions are passed separately in the .messages.create call
+                system_prompt = "You are a senior SEO Editor. Follow the OPTION_START, ORIGINAL, REVISED, OPTION_END format exactly."
+                
+                user_prompt = f"""
                 Provide 3 different options for inserting a backlink.
                 
                 Link Info:
@@ -98,17 +95,27 @@ if st.button("Generate Placement Options", type="primary"):
                 OPTION_END
                 """
                 
-                response = model.generate_content(prompt)
-                raw_text = response.text
+                # Using Claude 3.5 Sonnet for high quality, or Claude 3 Haiku for speed
+                message = client.messages.create(
+                    model="claude-3-5-sonnet-20240620",
+                    max_tokens=2000,
+                    system=system_prompt,
+                    messages=[
+                        {"role": "user", "content": user_prompt}
+                    ]
+                )
+                
+                # Claude returns a list of content blocks; we extract the text from the first one
+                raw_text = message.content[0].text
 
-                # Robust regex: handles extra spaces or newlines gracefully
+                # Robust regex
                 pattern = r"OPTION_START\s*ORIGINAL:\s*(.*?)\s*REVISED:\s*(.*?)\s*OPTION_END"
                 options = re.findall(pattern, raw_text, re.DOTALL)
 
                 st.divider()
 
                 if not options:
-                    st.error("Formatting error. The AI didn't follow the tag structure.")
+                    st.error("Formatting error. Claude didn't follow the tag structure.")
                     with st.expander("View Raw Output"):
                         st.text(raw_text)
                 else:
